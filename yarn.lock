@@ -18,6 +18,11 @@
     esutils "^2.0.2"
     js-tokens "^4.0.0"
 
+"@mjyc/opencv.js@^1.0.0":
+  version "1.0.0"
+  resolved "https://registry.yarnpkg.com/@mjyc/opencv.js/-/opencv.js-1.0.0.tgz#076c30efc6f8a00015cec399a4b9bfe653e12466"
+  integrity sha512-cvha6+WgnzaPiBVtnrzmTAdhGAkttMOnVDFnMzOH5vwbVlJblpKFgK/aqTUqVEDh6ff6Hs6uJFSm75zaGPRPmg==
+
 "@types/anymatch@*":
   version "1.3.1"
   resolved "https://registry.yarnpkg.com/@types/anymatch/-/anymatch-1.3.1.tgz#336badc1beecb9dacc38bea2cf32adf627a8421a"
@@ -3190,11 +3195,6 @@ onetime@^5.1.0:
   integrity sha512-5NcSkPHhwTVFIQN+TUqXoS5+dlElHXdpAWu9I0HP20YOtIi+aZ0Ct82jdlILDxjLEAWwvm+qj1m6aEtsDVmm6Q==
   dependencies:
     mimic-fn "^2.1.0"
-
-opencv.js@^1.2.1:
-  version "1.2.1"
-  resolved "https://registry.yarnpkg.com/opencv.js/-/opencv.js-1.2.1.tgz#9e89fd669a749f80574ba5d4615a5ff3e3c09a16"
-  integrity sha512-+ji5Pk3eyz+RRSeZr2kLZNJpjsKoGyPJOjFWng7+Cuq9ylHakBqJMxDGlBW1+qdju3k8DadWOiHJ6JaF28UpKA==
 
 opn@^5.5.0:
   version "5.5.0"

@@ -3,7 +3,7 @@
   "version": "0.2.4",
   "scripts": {
     "dev": "webpack-dev-server",
-    "build": "webpack --mode production"
+    "build": "NODE_OPTIONS=\"--max-old-space-size=4096\" webpack --mode production"
   },
   "author": "s2lsoftener <s2@puyonexus.com>",
   "license": "GPL-3.0-or-later",
@@ -22,6 +22,6 @@
     "write-file-webpack-plugin": "^4.5.1"
   },
   "dependencies": {
-    "opencv.js": "^1.2.1"
+    "@mjyc/opencv.js": "^1.0.0"
   }
 }

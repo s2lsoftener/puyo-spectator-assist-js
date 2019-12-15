@@ -1,3 +1,3 @@
-import cv from 'opencv.js';
+import cv from '@mjyc/opencv.js';
 
 console.log(cv);

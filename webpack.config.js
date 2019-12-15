@@ -4,6 +4,7 @@ const CleanWebpackPlugin = require('clean-webpack-plugin').CleanWebpackPlugin;
 const CopyWebpackPlugin = require('copy-webpack-plugin');
 const WriteFilePlugin = require('write-file-webpack-plugin');
 
+console.log(process.env.NODE_ENV === 'development' && 'inline-source-map');
 
 module.exports = {
   mode: process.env.NODE_ENV || 'development',
