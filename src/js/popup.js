@@ -1,3 +1,3 @@
-import cv from '@mjyc/opencv.js';
+import opencvTest from "./opencv-test";
 
-console.log(cv);
+opencvTest();

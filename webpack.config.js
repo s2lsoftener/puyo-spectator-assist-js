@@ -4,15 +4,14 @@ const CleanWebpackPlugin = require('clean-webpack-plugin').CleanWebpackPlugin;
 const CopyWebpackPlugin = require('copy-webpack-plugin');
 const WriteFilePlugin = require('write-file-webpack-plugin');
 
-console.log(process.env.NODE_ENV === 'development' && 'inline-source-map');
-
 module.exports = {
   mode: process.env.NODE_ENV || 'development',
-  devtool: process.env.NODE_ENV === 'development' && 'inline-source-map',
+  devtool: process.env.NODE_ENV === 'development' && 'cheap-module-eval-source-map',
   devServer: {
     open: false,
     contentBase: './build',
     watchContentBase: true,
+    disableHostCheck: true
   },
   entry: {
     background: './src/js/background.js',
@@ -35,7 +34,12 @@ module.exports = {
       {
         test: /\.(png|svg|jpg|gif)$/,
         use: [
-          'file-loader',
+          {
+            loader: 'file-loader',
+            options: {
+              outputPath: 'images',
+            }
+          }
         ],
       },
     ],

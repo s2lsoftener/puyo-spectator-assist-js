@@ -1,5 +1,6 @@
 {
   "name": "PuyoSpectatorAssist.js",
+  "version": "0.2.4",
   "options_page": "options.html",
   "background": {
     "page": "background.html"
