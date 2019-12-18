@@ -6,7 +6,7 @@ const WriteFilePlugin = require('write-file-webpack-plugin');
 
 module.exports = {
   mode: process.env.NODE_ENV || 'development',
-  devtool: process.env.NODE_ENV === 'development' && 'cheap-module-eval-source-map',
+  devtool: process.env.NODE_ENV === 'development' && 'inline-source-map',
   devServer: {
     open: false,
     contentBase: './build',
