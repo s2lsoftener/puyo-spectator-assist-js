@@ -1,28 +1,23 @@
-import cv from "@mjyc/opencv.js";
-import testImage from "../img/lagnus.png";
+import cv from '@mjyc/opencv.js';
+import testImage from '../img/lagnus.png';
 
-/**
- * Load image from URL. Returns an HTMLImageElement
- * @param {string} src URL/path of image
- * @returns {Promise<HTMLImageElement>}
- */
-function loadImage(src) {
-  return new Promise((resolve, reject) => {
-    const img = document.createElement("img");
+/** Load image from URL. Returns an HTMLImageElement */
+function loadImage(src: string): Promise<HTMLImageElement> {
+  return new Promise(resolve => {
+    const img = document.createElement('img');
     img.src = src;
-    img.onload = () => {
+    img.onload = (): void => {
       resolve(img);
-    }
+    };
   });
 }
 
-/**
- * @typedef {Object} ScreenRect
- * @property {number} x0 top-left x
- * @property {number} y0 top-left y
- * @property {number} x1 bottom-right x
- * @property {number} y1 bottom-right y
- */
+interface ScreenExtent {
+  x0: number;
+  y0: number;
+  x1: number;
+  y1: number;
+}
 
 /**
  * Get points for the top-left and bottom-right corners
@@ -32,18 +27,13 @@ function loadImage(src) {
  * * matching keypoints / feature descriptors (complicated setup?)
  * * generalized hough transform (kinda complicated, not sure if it'll work)
  * * just give a GUI option to manually set it
- * @returns {ScreenRect} { x0, y0, x1, y1 }
  */
-function getScreenRect() {
+function getScreenRect(): ScreenExtent {
   // For now, just assume that I know the screen region already.
-  return { x0: 0, y0: 0, x1: 1920, y1: 1080 }
+  return { x0: 0, y0: 0, x1: 1920, y1: 1080 };
 }
 
-/**
- * @param {ScreenRect} screenRect
- * @returns {[number, number]}
- */
-function getDimsFromScreenRect(screenRect) {
+function getDimsFromScreenRect(screenRect: ScreenExtent): [number, number] {
   const width = screenRect.x1 - screenRect.x0;
   const height = screenRect.y1 - screenRect.y0;
   return [width, height];
@@ -53,38 +43,35 @@ function getDimsFromScreenRect(screenRect) {
  * @param {ScreenRect} boardRect
  * @returns {{x: number, y: number, width: number, height: number}}
  */
-function getCellCoordMatrix(boardRect) {
+function getCellCoordMatrix(boardRect: ScreenExtent): cv.Rect[][] {
   const width = boardRect.x1 - boardRect.x0;
   const height = boardRect.y1 - boardRect.y0;
   const cellWidth = width / 6;
   const cellHeight = height / 12;
 
-  const matrix = [];
+  const matrix: cv.Rect[][] = [];
   for (let x = 0; x < 6; x++) {
     matrix[x] = [];
     for (let y = 0; y < 12; y++) {
       const rect = {
         x0: boardRect.x0 + cellWidth * x,
-        x1: boardRect.x0 + cellWidth * (x+1),
+        x1: boardRect.x0 + cellWidth * (x + 1),
         y0: boardRect.y0 + cellHeight * y,
-        y1: boardRect.y0 + cellHeight * (y+1)
-      }
+        y1: boardRect.y0 + cellHeight * (y + 1),
+      };
 
       matrix[x][y] = new cv.Rect(rect.x0, rect.y0, cellWidth, cellHeight);
     }
   }
 
-  return matrix
+  return matrix;
 }
 
 /**
  * Get croppings of each cell
- * @param {{x: number, y: number, width: number, height: number}[][]} cellCoordMatrix 
- * @param {cv.Mat} screenMat
- * @returns {cv.Mat[][]}
  */
-function getBoardCells(cellCoordMatrix, screenMat) {
-  const boardCellMatrix = [];
+function getBoardCells(cellCoordMatrix: cv.Rect[][], screenMat: cv.Mat): cv.Mat[][] {
+  const boardCellMatrix: cv.Mat[][] = [];
   for (let x = 0; x < cellCoordMatrix.length; x++) {
     boardCellMatrix[x] = [];
     for (let y = 0; y < cellCoordMatrix[x].length; y++) {
@@ -93,7 +80,7 @@ function getBoardCells(cellCoordMatrix, screenMat) {
     }
   }
 
-  return boardCellMatrix
+  return boardCellMatrix;
 }
 
 /**
@@ -101,7 +88,7 @@ function getBoardCells(cellCoordMatrix, screenMat) {
  * @param {{x: number, y: number, width: number, height: number}[][]} cellCoordMatrix
  * @param {cv.Mat} screenMat
  */
-function drawBoardCellOutlines(cellCoordMatrix, screenMat) {
+function drawBoardCellOutlines(cellCoordMatrix: cv.Rect[][], screenMat: cv.Mat): void {
   for (let x = 0; x < cellCoordMatrix.length; x++) {
     for (let y = 0; y < cellCoordMatrix[x].length; y++) {
       const rect = cellCoordMatrix[x][y];
@@ -114,10 +101,9 @@ function drawBoardCellOutlines(cellCoordMatrix, screenMat) {
 }
 
 /**
- * Get coordinates for the score digits
- * @param {ScreenRect} scoreRect 
+ * Get coordinates for the score digit
  */
-function getScoreDigitCoords(scoreRect) {
+function getScoreDigitCoords(scoreRect: ScreenExtent): cv.Rect[] {
   const scoreWidth = scoreRect.x1 - scoreRect.x0;
   const scoreHeight = scoreRect.y1 - scoreRect.y0;
   const scoreDigitWidth = scoreWidth / 8;
@@ -130,13 +116,9 @@ function getScoreDigitCoords(scoreRect) {
   return scoreDigitArray;
 }
 
-/**
- * Get croppings of the score digits
- * @param {{x: number, y: number, width: number, height: number}[]} scoreDigitArray
- * @param {cv.Mat} screenMat
- */
-function getScoreDigits(scoreDigitArray, screenMat) {
-  const scoreDigitMats = [];
+/** Get croppings of the score digits */
+function getScoreDigits(scoreDigitArray: cv.Rect[], screenMat: cv.Mat): cv.Mat[] {
+  const scoreDigitMats: cv.Mat[] = [];
   for (let i = 0; i < scoreDigitArray.length; i++) {
     const rect = scoreDigitArray[i];
     scoreDigitMats[i] = screenMat.roi(rect);
@@ -150,7 +132,7 @@ function getScoreDigits(scoreDigitArray, screenMat) {
  * @param {{x: number, y: number, width: number, height: number}[]} scoreDigitArray
  * @param {cv.Mat} screenMat
  */
-function drawScoreDigitOutlines(scoreDigitArray, screenMat) {
+function drawScoreDigitOutlines(scoreDigitArray: cv.Rect[], screenMat: cv.Mat): void {
   for (let i = 0; i < scoreDigitArray.length; i++) {
     const rect = scoreDigitArray[i];
     const topLeft = new cv.Point(rect.x, rect.y);
@@ -160,7 +142,7 @@ function drawScoreDigitOutlines(scoreDigitArray, screenMat) {
   }
 }
 
-export default async function opencvTest() {
+export default async function opencvTest(): Promise<void> {
   console.log(cv);
 
   // Load test iamge
@@ -176,10 +158,18 @@ export default async function opencvTest() {
   const p1Board = {
     x0: screenRect.x0 + screenWidth * p1BoardOffset.x,
     y0: screenRect.y0 + screenHeight * p1BoardOffset.y,
-    x1: (screenRect.x0 + screenWidth * p1BoardOffset.x) + boardWidth,
-    y1: (screenRect.y0 + screenHeight * p1BoardOffset.y) + boardHeight
-  }
-  cv.rectangle(mat, new cv.Point(p1Board.x0, p1Board.y0), new cv.Point(p1Board.x1, p1Board.y1), new cv.Scalar(255, 0, 0, 255), 1, cv.LINE_AA, 0);
+    x1: screenRect.x0 + screenWidth * p1BoardOffset.x + boardWidth,
+    y1: screenRect.y0 + screenHeight * p1BoardOffset.y + boardHeight,
+  };
+  cv.rectangle(
+    mat,
+    new cv.Point(p1Board.x0, p1Board.y0),
+    new cv.Point(p1Board.x1, p1Board.y1),
+    new cv.Scalar(255, 0, 0, 255),
+    1,
+    cv.LINE_AA,
+    0,
+  );
 
   // Compute cell coordinates
   const p1BoardCellCoords = getCellCoordMatrix(p1Board);
@@ -196,35 +186,57 @@ export default async function opencvTest() {
     x0: screenRect.x0 + screenWidth * p1ScoreOffset.x,
     y0: screenRect.y0 + screenHeight * p1ScoreOffset.y,
     x1: screenRect.x0 + screenWidth * p1ScoreOffset.x + scoreWidth,
-    y1: screenRect.y0 + screenHeight * p1ScoreOffset.y + scoreHeight
-  }
-  cv.rectangle(mat, new cv.Point(p1Score.x0, p1Score.y0), new cv.Point(p1Score.x1, p1Score.y1), new cv.Scalar(0, 0, 255, 255), 1, cv.LINE_AA, 0);
+    y1: screenRect.y0 + screenHeight * p1ScoreOffset.y + scoreHeight,
+  };
+  cv.rectangle(
+    mat,
+    new cv.Point(p1Score.x0, p1Score.y0),
+    new cv.Point(p1Score.x1, p1Score.y1),
+    new cv.Scalar(0, 0, 255, 255),
+    1,
+    cv.LINE_AA,
+    0,
+  );
   // Outline P1 Score digits
   const p1ScoreDigitCoords = getScoreDigitCoords(p1Score);
   const p1ScoreDigits = getScoreDigits(p1ScoreDigitCoords, mat);
   drawScoreDigitOutlines(p1ScoreDigitCoords, mat);
 
-  
+  // Outline P1 Next Window
+  const nextWindowWidth = screenWidth * 0.01;
+  const nextWindowHeight = screenWidth * 0.01;
+  const p1NextWindowOffset = { x: 0.3, y: 0.1 };
+  const p1NextWindow = {
+    x0: screenRect.x0 + screenWidth * p1NextWindowOffset.x,
+    y0: screenRect.y0 + screenHeight * p1NextWindowOffset.y,
+    x1: screenRect.x0 + screenWidth * p1NextWindowOffset.x + nextWindowWidth,
+    y1: screenRect.y0 + screenHeight * p1NextWindowOffset.y + nextWindowHeight,
+  };
+  // cv.rectangle(mat, new cv.Point(p1));
+
+  //
 
   // Show bottom row
   for (let i = 0; i < 6; i++) {
-    const div = document.createElement("div");
+    const div = document.createElement('div');
     div.style.marginLeft = `12px`;
-    const cellCanvas = document.createElement("canvas");
+    const cellCanvas = document.createElement('canvas');
     div.appendChild(cellCanvas);
     document.body.appendChild(div);
     cv.imshow(cellCanvas, boardCells[i][11]);
   }
 
   // Resize image
-  let dst = new cv.Mat();
+  const dst = new cv.Mat();
   cv.resize(mat, dst, new cv.Size(1920 * 1, 1080 * 1));
 
   // Show dst on canvas
-  const canvasOutput = document.getElementById("canvas-output");
+  const canvasOutput = document.getElementById('canvas-output') as HTMLCanvasElement;
   cv.imshow(canvasOutput, dst);
-  
+
   // Give mat to window object to allow in-browser debugging.
-  window.mat = mat;
-  window.cv = cv;
+  // window.mat = mat;
+  // window.cv = cv;
+  Object.assign(window, { cv });
+  Object.assign(window, { mat });
 }

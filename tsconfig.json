@@ -1,0 +1,10 @@
+{
+  "compilerOptions": {
+    "module": "es6",
+    "target": "ES2019",
+    "outDir": "./build/",
+    "allowJs": true,
+    "noImplicitAny": true
+  },
+  "exclude": ["node_modules", "webpack.config.js"]
+}
