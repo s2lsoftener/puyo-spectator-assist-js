@@ -1,7 +1,16 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 declare module '@mjyc/opencv.js' {
   namespace cv {
+    const FILLED = -1;
     const LINE_AA = 16;
+    const NORM_L2 = 4;
+
+    // Array Types
+    const CV_8U = 0;
+    const CV_8UC1 = 0;
+    const CV_8UC2 = 8;
+    const CV_8UC3 = 16;
+    const CV_8UC4 = 24;
 
     class Rect {
       /**
@@ -19,7 +28,24 @@ declare module '@mjyc/opencv.js' {
     }
 
     class Mat {
+      static zeros: {
+        new (rows: number, scale: number, cvType: number): cv.Mat;
+      };
+
+      rows: number;
+      cols: number;
+      matSize: [number, number];
+      step: [number, number];
+      data: Uint8Array;
+      data8S: Int8Array;
+      data16U: Uint16Array;
+      data16S: Int16Array;
+      data32S: Int32Array;
+      data32F: Float32Array;
+      data64F: Float64Array;
+
       roi(rect: Rect): Mat;
+      size(): { width: number; height: number };
     }
 
     class Point {
@@ -40,15 +66,45 @@ declare module '@mjyc/opencv.js' {
       height: number;
     }
 
+    class MatVector {
+      // eslint-disable-next-line @typescript-eslint/camelcase
+      push_back(mat: Mat): void;
+    }
+
+    function calcHist(
+      srcVec: MatVector,
+      channels: number[],
+      mask: Mat,
+      hist: Mat,
+      histSize: number[],
+      ranges: number[],
+      accumulate: boolean,
+    ): void;
+
+    function minMaxLoc(
+      hist: Mat,
+      mask: Mat,
+    ): {
+      minVal: number;
+      maxVal: number;
+      minLoc: { x: number; y: number };
+      maxLoc: { x: number; y: number };
+    };
+
+    /** Calculates the L2 norm of a mat */
+    function norm(mat: Mat, normType: 4): number;
+
     function rectangle(
       mat: Mat,
       topLeft: Point,
       bottomRight: Point,
       color: Scalar,
       thickness: number,
-      lineType: 4 | 8 | 16,
-      shift: number,
+      lineType?: 4 | 8 | 16,
+      shift?: number,
     ): void;
+
+    function subtract(mat1: Mat, mat2: Mat, dst: Mat, mask: Mat, dtype: number): void;
 
     /**
      * Read image from a canvas or image element and return a cv.Mat

@@ -237,6 +237,6 @@ export default async function opencvTest(): Promise<void> {
   // Give mat to window object to allow in-browser debugging.
   // window.mat = mat;
   // window.cv = cv;
-  Object.assign(window, { cv });
+  // Object.assign(window, { cv });
   Object.assign(window, { mat });
 }

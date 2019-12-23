@@ -3,8 +3,8 @@
     "module": "es6",
     "target": "ES2019",
     "outDir": "./build/",
-    "allowJs": true,
-    "noImplicitAny": true
+    "noImplicitAny": true,
+    "sourceMap": true
   },
   "exclude": ["node_modules", "webpack.config.js"]
 }

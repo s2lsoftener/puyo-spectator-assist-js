@@ -7,12 +7,12 @@ const WriteFilePlugin = require('write-file-webpack-plugin');
 
 module.exports = {
   mode: process.env.NODE_ENV || 'development',
-  devtool: process.env.NODE_ENV === 'development' && 'cheap-module-eval-source-map',
+  devtool: process.env.NODE_ENV === 'development' && 'inline-source-map',
   devServer: {
     open: false,
     contentBase: './build',
     watchContentBase: true,
-    disableHostCheck: true,
+    // disableHostCheck: true,
   },
   entry: {
     background: './src/ts/background.ts',
@@ -22,6 +22,9 @@ module.exports = {
   output: {
     filename: '[name].js',
     path: path.resolve(__dirname, 'build'),
+  },
+  externals: {
+    '@mjyc/opencv.js': 'cv',
   },
   module: {
     rules: [
@@ -39,9 +42,9 @@ module.exports = {
         use: [
           {
             loader: 'file-loader',
-            options: {
-              outputPath: 'images',
-            },
+            // options: {
+            //   outputPath: 'images',
+            // },
           },
         ],
       },
@@ -59,6 +62,11 @@ module.exports = {
       {
         from: './src/manifest.json',
         to: './',
+      },
+      {
+        from: './node_modules/@mjyc/opencv.js/opencv.js',
+        to: './',
+        test: /opencv.js/,
       },
     ]),
 
