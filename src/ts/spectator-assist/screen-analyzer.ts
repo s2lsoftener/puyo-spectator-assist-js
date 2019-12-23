@@ -26,6 +26,17 @@ export default class ScreenAnalyzer {
   private player2: PlayerFeatures;
   private frame: cv.Mat;
 
+  // Pre-allocate some histograms
+  private hist1 = new cv.Mat();
+  private hist2 = new cv.Mat();
+  private hist3 = new cv.Mat();
+  private hist4 = new cv.Mat();
+
+  private SCALAR_RED = new cv.Scalar(255, 0, 0, 0);
+  private SCALAR_GREEN = new cv.Scalar(0, 255, 0, 0);
+  private SCALAR_BLUE = new cv.Scalar(0, 0, 255, 0);
+  private EMPTY_MASK = new cv.Mat();
+
   constructor(targetCanvas: HTMLCanvasElement) {
     this.canvas = targetCanvas;
   }
@@ -207,46 +218,82 @@ export default class ScreenAnalyzer {
     const player = p === 1 ? this.player1 : this.player2;
     const cellMat = player.cells[col][row].mat;
 
-    const srcVec = new cv.MatVector();
-    srcVec.push_back(cellMat);
+    // Test
+    const orig = this.calcHist(cellMat);
 
-    // Histogram parameters
-    const accumulate = false;
-    const channels = [0]; // red
-    const histSize = [256];
-    const ranges = [0, 255];
-    const hist = new cv.Mat();
-    const mask = new cv.Mat();
-    const color = new cv.Scalar(255, 0, 0, 0);
-    const scale = 2;
-
-    cv.calcHist(srcVec, channels, mask, hist, histSize, ranges, accumulate);
-    const result = cv.minMaxLoc(hist, mask);
-    const max = result.maxVal;
-    const dst = new cv.Mat.zeros(cellMat.rows, histSize[0] * scale, cv.CV_8UC3);
-
-    // Draw histogram
-    for (let i = 0; i < histSize[0]; i++) {
-      const binVal = (hist.data32F[i] * cellMat.rows) / max;
-      const point1 = new cv.Point(i * scale, cellMat.rows - 1);
-      const point2 = new cv.Point((i + 1) * scale - 1, cellMat.rows - binVal);
-      cv.rectangle(dst, point1, point2, color, cv.FILLED);
+    for (let c = 0; c < 6; c++) {
+      for (let r = 0; r < 12; r++) {
+        const compare = this.calcHist(player.cells[c][r].mat);
+        const norm = ScreenAnalyzer.normSP(orig, compare);
+        console.log(`c${col}r${row} vs c${c}r${r}: `, norm);
+      }
     }
 
-    cv.imshow('hist-red', dst);
+    // const srcVec = new cv.MatVector();
+    // srcVec.push_back(cellMat);
 
-    console.log(hist);
-    console.log(mask);
-    console.log(dst);
+    // // Histogram parameters
+    // const accumulate = false;
+    // const channels = [0]; // red
+    // const histSize = [256];
+    // const ranges = [0, 255];
+    // const hist = new cv.Mat();
+    // const mask = new cv.Mat();
+    // const color = new cv.Scalar(255, 0, 0, 0);
+    // const scale = 2;
 
-    // Test out norm?
-    // const norm = ScreenAnalyzer.norm(hist, hist);
-    // console.log(norm);
+    // cv.calcHist(srcVec, channels, mask, hist, histSize, ranges, accumulate);
+    // const result = cv.minMaxLoc(hist, mask);
+    // const max = result.maxVal;
+    // const dst = new cv.Mat.zeros(cellMat.rows, histSize[0] * scale, cv.CV_8UC3);
+
+    // // Draw histogram
+    // for (let i = 0; i < histSize[0]; i++) {
+    //   const binVal = (hist.data32F[i] * cellMat.rows) / max;
+    //   const point1 = new cv.Point(i * scale, cellMat.rows - 1);
+    //   const point2 = new cv.Point((i + 1) * scale - 1, cellMat.rows - binVal);
+    //   cv.rectangle(dst, point1, point2, color, cv.FILLED);
+    // }
+
+    // cv.imshow('hist-red', dst);
+
+    // console.log(hist);
+    // console.log(mask);
+    // console.log(dst);
+
+    // // Try out hist against itself.
+    // const testProduct = ScreenAnalyzer.normSP(hist, hist);
 
     return this;
   }
 
-  static normalizedScalarProduct(mat1: cv.Mat, mat2: cv.Mat): number {
+  private calcHist(mat: cv.Mat): cv.Mat {
+    const srcVec = new cv.MatVector();
+    srcVec.push_back(mat);
+
+    const accumulate = false;
+    const histSize = [256];
+    const CHANNEL_RED = [0];
+    const CHANNEL_GREEN = [1];
+    const CHANNEL_BLUE = [2];
+    const ranges = [0, 255];
+
+    // Calculate Histograms
+    cv.calcHist(srcVec, CHANNEL_RED, this.EMPTY_MASK, this.hist1, histSize, ranges, accumulate);
+    cv.calcHist(srcVec, CHANNEL_GREEN, this.EMPTY_MASK, this.hist2, histSize, ranges, accumulate);
+    cv.calcHist(srcVec, CHANNEL_BLUE, this.EMPTY_MASK, this.hist3, histSize, ranges, accumulate);
+
+    // Combine to one histogram
+    const histData = [...this.hist1.data32F, ...this.hist2.data32F, ...this.hist3.data32F];
+    const combinedHist = cv.matFromArray(256 * 3, 1, cv.CV_32FC1, histData);
+    // console.log('Combined histogram: ', combinedHist);
+
+    // Test out normSP on the histogram
+    return combinedHist;
+  }
+
+  /** Calculate normalized scalar product */
+  static normSP(mat1: cv.Mat, mat2: cv.Mat): number {
     // Compute the dot product of the two 1d vectors
     const dst = new cv.Mat();
     cv.multiply(mat1, mat2, dst);
@@ -256,6 +303,7 @@ export default class ScreenAnalyzer {
     const mat1Norm = cv.norm(mat1, cv.NORM_L2);
     const mat2Norm = cv.norm(mat2, cv.NORM_L2);
 
-    return dst.data32F[0] / (mat1Norm * mat2Norm);
+    const result = dst.data32F[0] / (mat1Norm * mat2Norm);
+    return result;
   }
 }

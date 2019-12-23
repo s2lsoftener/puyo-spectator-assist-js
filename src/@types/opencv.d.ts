@@ -4,6 +4,7 @@ declare module '@mjyc/opencv.js' {
     const FILLED = -1;
     const LINE_AA = 16;
     const NORM_L2 = 4;
+    const REDUCE_SUM = 0;
 
     // Array Types
     const CV_8U = 0;
@@ -11,6 +12,10 @@ declare module '@mjyc/opencv.js' {
     const CV_8UC2 = 8;
     const CV_8UC3 = 16;
     const CV_8UC4 = 24;
+    const CV_32FC1 = 5;
+    const CV_32FC2 = 13;
+    const CV_32FC3 = 21;
+    const CV_32FC4 = 29;
 
     class Rect {
       /**
@@ -81,6 +86,8 @@ declare module '@mjyc/opencv.js' {
       accumulate: boolean,
     ): void;
 
+    function matFromArray(rows: number, cols: number, matrixType: number, data: number[] | Float32Array): Mat;
+
     function minMaxLoc(
       hist: Mat,
       mask: Mat,
@@ -90,6 +97,8 @@ declare module '@mjyc/opencv.js' {
       minLoc: { x: number; y: number };
       maxLoc: { x: number; y: number };
     };
+
+    function multiply(mat1: Mat, mat2: Mat, dst: Mat): void;
 
     /** Calculates the L2 norm of a mat */
     function norm(mat: Mat, normType: 4): number;
@@ -103,6 +112,8 @@ declare module '@mjyc/opencv.js' {
       lineType?: 4 | 8 | 16,
       shift?: number,
     ): void;
+
+    function reduce(src: Mat, dst: Mat, rowOrCol: 0 | 1, reducer: number): void;
 
     function subtract(mat1: Mat, mat2: Mat, dst: Mat, mask: Mat, dtype: number): void;
 

@@ -30,9 +30,8 @@ function loadImage(src: string): Promise<HTMLImageElement> {
     .getFieldCells(1)
     .getScoreAreaFeatures(1)
     .getScoreDigitFeatures(1)
-    .analyzeFieldCell(1, 0, 11)
+    .analyzeFieldCell(1, 0, 10)
     .drawROIs(1);
 
-  console.log('Assigning object?');
   Object.assign(window, { screenAnalyzer });
 })();
