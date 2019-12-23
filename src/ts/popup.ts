@@ -26,12 +26,12 @@ function loadImage(src: string): Promise<HTMLImageElement> {
     .getGameScreenMask()
     .getGameScreenImage()
     .getField(1)
-    .getFieldCellMasks(1)
+    .getFieldCellRects(1)
     .getFieldCells(1)
     .getScoreAreaFeatures(1)
     .getScoreDigitFeatures(1)
-    .analyzeFieldCell(1, 0, 10)
-    .drawROIs(1);
+    .analyzeFieldCell(1, 0, 10);
+  // .drawROIs(1);
 
   Object.assign(window, { screenAnalyzer });
 })();

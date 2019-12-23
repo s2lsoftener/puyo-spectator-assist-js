@@ -25,6 +25,7 @@ export default class ScreenAnalyzer {
   private player1: PlayerFeatures;
   private player2: PlayerFeatures;
   private frame: cv.Mat;
+  private cellMask: cv.Mat; // Gets set during getFieldCells
 
   // Pre-allocate some histograms
   private hist1 = new cv.Mat();
@@ -83,7 +84,7 @@ export default class ScreenAnalyzer {
   public getField(player: 1 | 2): ScreenAnalyzer {
     const { width: screenWidth, height: screenHeight } = this.screen.mat.size();
     const fieldWidth = screenWidth * 0.2;
-    const fieldHeight = screenHeight * 0.665;
+    const fieldHeight = screenHeight * 0.667;
 
     const offset = { x: 0, y: 0 };
     if (player === 1) {
@@ -103,7 +104,7 @@ export default class ScreenAnalyzer {
     return this;
   }
 
-  public getFieldCellMasks(p: 1 | 2): ScreenAnalyzer {
+  public getFieldCellRects(p: 1 | 2): ScreenAnalyzer {
     const player = p === 1 ? this.player1 : this.player2;
     const { width: fieldWidth, height: fieldHeight } = player.field.mat.size();
     const cellWidth = fieldWidth / 6;
@@ -131,6 +132,8 @@ export default class ScreenAnalyzer {
     for (let x = 0; x < 6; x++) {
       for (let y = 0; y < 12; y++) {
         cells[x][y].mat = fieldMat.roi(cells[x][y].mask);
+        // // apply ellipse mask
+        // cv.bitwise_and(cells[x][y].mat, mask, cells[x][y].mat);
       }
     }
 
@@ -218,9 +221,10 @@ export default class ScreenAnalyzer {
     const player = p === 1 ? this.player1 : this.player2;
     const cellMat = player.cells[col][row].mat;
 
-    // Test
-    const orig = this.calcHist(cellMat);
+    console.log(cellMat);
 
+    // Test. Compare to every other cell.
+    const orig = this.calcHist(cellMat);
     for (let c = 0; c < 6; c++) {
       for (let r = 0; r < 12; r++) {
         const compare = this.calcHist(player.cells[c][r].mat);
@@ -228,41 +232,6 @@ export default class ScreenAnalyzer {
         console.log(`c${col}r${row} vs c${c}r${r}: `, norm);
       }
     }
-
-    // const srcVec = new cv.MatVector();
-    // srcVec.push_back(cellMat);
-
-    // // Histogram parameters
-    // const accumulate = false;
-    // const channels = [0]; // red
-    // const histSize = [256];
-    // const ranges = [0, 255];
-    // const hist = new cv.Mat();
-    // const mask = new cv.Mat();
-    // const color = new cv.Scalar(255, 0, 0, 0);
-    // const scale = 2;
-
-    // cv.calcHist(srcVec, channels, mask, hist, histSize, ranges, accumulate);
-    // const result = cv.minMaxLoc(hist, mask);
-    // const max = result.maxVal;
-    // const dst = new cv.Mat.zeros(cellMat.rows, histSize[0] * scale, cv.CV_8UC3);
-
-    // // Draw histogram
-    // for (let i = 0; i < histSize[0]; i++) {
-    //   const binVal = (hist.data32F[i] * cellMat.rows) / max;
-    //   const point1 = new cv.Point(i * scale, cellMat.rows - 1);
-    //   const point2 = new cv.Point((i + 1) * scale - 1, cellMat.rows - binVal);
-    //   cv.rectangle(dst, point1, point2, color, cv.FILLED);
-    // }
-
-    // cv.imshow('hist-red', dst);
-
-    // console.log(hist);
-    // console.log(mask);
-    // console.log(dst);
-
-    // // Try out hist against itself.
-    // const testProduct = ScreenAnalyzer.normSP(hist, hist);
 
     return this;
   }
@@ -278,10 +247,20 @@ export default class ScreenAnalyzer {
     const CHANNEL_BLUE = [2];
     const ranges = [0, 255];
 
+    // Create an ellipse mask
+    const cells = this.player1.cells[0][0];
+    const mask = new cv.Mat(cells.mask.height, cells.mask.width, cv.CV_8UC1, new cv.Scalar(0, 0, 0, 0));
+    const rect = new cv.RotatedRect(
+      new cv.Point(cells.mask.height / 2, cells.mask.width / 2),
+      new cv.Size(cells.mask.width, cells.mask.height),
+      0,
+    );
+    cv.ellipse1(mask, rect, new cv.Scalar(255, 0, 0, 0), -1, cv.LINE_8);
+
     // Calculate Histograms
-    cv.calcHist(srcVec, CHANNEL_RED, this.EMPTY_MASK, this.hist1, histSize, ranges, accumulate);
-    cv.calcHist(srcVec, CHANNEL_GREEN, this.EMPTY_MASK, this.hist2, histSize, ranges, accumulate);
-    cv.calcHist(srcVec, CHANNEL_BLUE, this.EMPTY_MASK, this.hist3, histSize, ranges, accumulate);
+    cv.calcHist(srcVec, CHANNEL_RED, mask, this.hist1, histSize, ranges, accumulate);
+    cv.calcHist(srcVec, CHANNEL_GREEN, mask, this.hist2, histSize, ranges, accumulate);
+    cv.calcHist(srcVec, CHANNEL_BLUE, mask, this.hist3, histSize, ranges, accumulate);
 
     // Combine to one histogram
     const histData = [...this.hist1.data32F, ...this.hist2.data32F, ...this.hist3.data32F];
@@ -297,6 +276,7 @@ export default class ScreenAnalyzer {
     // Compute the dot product of the two 1d vectors
     const dst = new cv.Mat();
     cv.multiply(mat1, mat2, dst);
+
     cv.reduce(dst, dst, 0, cv.REDUCE_SUM);
 
     // Divide the dot product by the L2 norms.

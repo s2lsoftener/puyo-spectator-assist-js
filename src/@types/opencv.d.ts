@@ -2,6 +2,8 @@
 declare module '@mjyc/opencv.js' {
   namespace cv {
     const FILLED = -1;
+    const LINE_4 = 4;
+    const LINE_8 = 8;
     const LINE_AA = 16;
     const NORM_L2 = 4;
     const REDUCE_SUM = 0;
@@ -34,8 +36,10 @@ declare module '@mjyc/opencv.js' {
 
     class Mat {
       static zeros: {
-        new (rows: number, scale: number, cvType: number): cv.Mat;
+        new (rows: number, cols: number, cvType: number): cv.Mat;
       };
+
+      constructor(rows?: number, cols?: number, cvType?: number, scalar?: Scalar);
 
       rows: number;
       cols: number;
@@ -51,6 +55,7 @@ declare module '@mjyc/opencv.js' {
 
       roi(rect: Rect): Mat;
       size(): { width: number; height: number };
+      type(): number;
     }
 
     class Point {
@@ -58,6 +63,14 @@ declare module '@mjyc/opencv.js' {
       constructor(x: number, y: number);
       x: number;
       y: number;
+    }
+
+    class RotatedRect {
+      static boundingRect(rotatedRect: RotatedRect): [number, number, number, number];
+      constructor(center: Point, size: Size, angleDegrees: number);
+      center: Point;
+      size: Size;
+      angle: number;
     }
 
     class Scalar extends Array {
@@ -76,6 +89,9 @@ declare module '@mjyc/opencv.js' {
       push_back(mat: Mat): void;
     }
 
+    // eslint-disable-next-line @typescript-eslint/camelcase
+    function bitwise_and(src1: Mat, src2: Mat, dst: Mat): void;
+
     function calcHist(
       srcVec: MatVector,
       channels: number[],
@@ -85,6 +101,8 @@ declare module '@mjyc/opencv.js' {
       ranges: number[],
       accumulate: boolean,
     ): void;
+
+    function ellipse1(dst: Mat, rotatedRect: RotatedRect, color: Scalar, thickness: number, lineType: 4 | 8 | 16): void;
 
     function matFromArray(rows: number, cols: number, matrixType: number, data: number[] | Float32Array): Mat;
 
