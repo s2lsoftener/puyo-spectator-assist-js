@@ -4,16 +4,7 @@
 import cv from '@mjyc/opencv.js';
 import ScreenAnalyzer from './spectator-assist/screen-analyzer';
 import testImage from '../img/lagnus.png';
-
-function loadImage(src: string): Promise<HTMLImageElement> {
-  return new Promise(resolve => {
-    const img = document.createElement('img');
-    img.src = src;
-    img.onload = (): void => {
-      resolve(img);
-    };
-  });
-}
+import { loadImage } from './spectator-assist/helper';
 
 (async function(): Promise<void> {
   const img = await loadImage(testImage);

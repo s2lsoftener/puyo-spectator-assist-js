@@ -1,9 +1,27 @@
 <!DOCTYPE html>
 <html>
   <head>
-
+    <title>PuyoSpectatorAssist.js - Options</title>
   </head>
   <body>
-    <p>Filler text for options.html</p>
+    <h2>Load Puyo Skin</h2>
+    <form method="post" enctype="multipart/form-data">
+      <div>
+        <label for="skin-upload">Upload Puyo Skin</label>
+        <input type="file" id="skin-upload" name="skin-upload" accept=".png" multiple>
+      </div>
+      <div class="preview">
+        <p>No files currently selected for upload</p>
+      </div>
+      <div>
+        <button>Submit</button>
+      </div>
+      <div>
+        Canvas output:
+        <canvas id='canvas-output'></canvas>
+      </div>
+    </form>
+    
+    <script src="opencv.js" type="text/javascript"></script>
   </body>
 </html>

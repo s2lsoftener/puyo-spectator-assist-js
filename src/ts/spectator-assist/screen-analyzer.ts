@@ -1,12 +1,5 @@
 import cv from '@mjyc/opencv.js';
 
-interface Bounds {
-  tl: cv.Point;
-  tr: cv.Point;
-  bl: cv.Point;
-  br: cv.Point;
-}
-
 interface ScreenFeature {
   mask: cv.Rect;
   mat?: cv.Mat;

@@ -19,6 +19,14 @@ declare module '@mjyc/opencv.js' {
     const CV_32FC3 = 21;
     const CV_32FC4 = 29;
 
+    // Color conversion codes
+    const COLOR_RGBA2RGB = 1;
+    const COLOR_RGB2HSV = 41;
+    const COLOR_HSV2RGB = 55;
+
+    // Histogram comparison methods
+    const HISTCMP_CORREL = 0;
+
     class Rect {
       /**
        * Creates a cv.Rect with x, y, width, and height properties
@@ -101,6 +109,10 @@ declare module '@mjyc/opencv.js' {
       ranges: number[],
       accumulate: boolean,
     ): void;
+
+    function compareHist(H1: Mat, H2: Mat, compare: number): number;
+
+    function cvtColor(src: cv.Mat, dst: cv.Mat, code: number, dstCn?: number): void;
 
     function ellipse1(dst: Mat, rotatedRect: RotatedRect, color: Scalar, thickness: number, lineType: 4 | 8 | 16): void;
 

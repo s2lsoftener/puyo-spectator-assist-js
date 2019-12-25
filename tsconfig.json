@@ -1,10 +1,16 @@
 {
   "compilerOptions": {
-    "module": "es6",
+    "baseUrl": ".",
+    "paths": {
+      "@mjyc/opencv.js": ["src/@types/opencv.d.ts"]
+    },
+    "module": "commonjs",
     "target": "ES2019",
     "outDir": "./build/",
     "noImplicitAny": true,
-    "sourceMap": true
+    "sourceMap": true,
+    "moduleResolution": "node",
+    "esModuleInterop": true
   },
   "exclude": ["node_modules", "webpack.config.js"]
 }
