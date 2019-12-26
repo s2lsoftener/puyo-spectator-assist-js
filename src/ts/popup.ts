@@ -1,9 +1,9 @@
 // import opencvTest from './opencv-test';
 
 // opencvTest();
-import cv from '@mjyc/opencv.js';
+import cv from '../js/opencv.js';
 import ScreenAnalyzer from './spectator-assist/screen-analyzer';
-import testImage from '../img/lagnus.png';
+import testImage from '../img/ringo_seriri_2.png';
 import { loadImage } from './spectator-assist/helper';
 
 (async function(): Promise<void> {
@@ -21,8 +21,8 @@ import { loadImage } from './spectator-assist/helper';
     .getFieldCells(1)
     .getScoreAreaFeatures(1)
     .getScoreDigitFeatures(1)
-    .analyzeFieldCell(1, 0, 10);
-  // .drawROIs(1);
+    .analyzeFieldCells(1)
+    .drawROIs(1);
 
   Object.assign(window, { screenAnalyzer });
 })();

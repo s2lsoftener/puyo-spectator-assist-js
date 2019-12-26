@@ -1,10 +1,14 @@
 import SkinAnalyzer from './spectator-assist/skin-analyzer';
-import testImage from '../img/puyo_aqua.png';
+import { PuyoData } from './spectator-assist/skin-analyzer';
 import { loadImage } from './spectator-assist/helper';
+import ScreenAnalyzer from './spectator-assist/screen-analyzer';
+
+interface AllColorData {
+  [key: string]: PuyoData;
+}
 
 const input: HTMLInputElement = document.querySelector('input#skin-upload');
 const preview: HTMLDivElement = document.querySelector('.preview');
-input.style.opacity = `0`;
 
 const fileTypes = ['image/png'];
 function validFileType(file: File): boolean {
@@ -27,19 +31,37 @@ function returnFileSize(num: number): string {
   }
 }
 
-function analyzePuyoSkin(images: HTMLImageElement[]): void {
-  console.log(images);
-  const skinAnalyzer = new SkinAnalyzer();
-  console.log(SkinAnalyzer);
-  const image = images[0];
-  skinAnalyzer.setImage(image);
-  skinAnalyzer.setROIs(false);
-  skinAnalyzer.calcAllHists();
-  skinAnalyzer.verifyHistograms();
-  skinAnalyzer.showImage('canvas-output');
+function analyzePuyoSkin(images: HTMLImageElement[], fileList: FileList): void {
+  const textarea: HTMLTextAreaElement = document.querySelector('textarea#color-json');
+
+  const data: AllColorData = {};
+
+  for (let i = 0; i < images.length; i++) {
+    const image = images[i];
+    const fileName = fileList[i].name.substr(0, fileList[i].name.length - 4);
+    let skinAnalyzer = new SkinAnalyzer();
+    const jsonData = skinAnalyzer
+      .setImage(image)
+      .setROIs(false)
+      .calcAllHists()
+      .verifyHistograms()
+      .outputHistJSON();
+    skinAnalyzer.showImage('canvas-output');
+    data[fileName] = JSON.parse(JSON.stringify(jsonData)) as PuyoData;
+    console.log(`${fileName}`, data[fileName]);
+    skinAnalyzer.delete();
+    skinAnalyzer = null;
+  }
+
+  // console.log(data);
+  textarea.value = JSON.stringify(data);
+  // images.forEach((image): void => {
+  //   image.style.width = `20%`;
+  //   image.style.height = `auto`;
+  // });
 }
 
-function updateImageDisplay(): void {
+async function updateImageDisplay(): Promise<void> {
   console.log('Running updateImageDisplay()');
   while (preview.firstChild) {
     preview.removeChild(preview.firstChild);
@@ -59,17 +81,16 @@ function updateImageDisplay(): void {
       const para = document.createElement('p');
       if (validFileType(curFiles[i])) {
         para.textContent = 'File name ' + curFiles[i].name + ', file size ' + returnFileSize(curFiles[i].size) + '.';
-        const image = document.createElement('img');
-        image.src = window.URL.createObjectURL(curFiles[i]);
+        const image = await loadImage(window.URL.createObjectURL(curFiles[i]));
+        console.log('Loaded image~', image);
         images.push(image);
         listItem.appendChild(image);
         listItem.appendChild(para);
 
         // Run the Skin Analyzer when the last image loads
         if (i === curFiles.length - 1) {
-          image.onload = (): void => {
-            analyzePuyoSkin(images);
-          };
+          console.log('Last image loaded');
+          analyzePuyoSkin(images, curFiles);
         }
       } else {
         para.textContent = `File name ${curFiles[i].name}: Not a valid file type. Update your selection.`;
@@ -81,10 +102,4 @@ function updateImageDisplay(): void {
   }
 }
 
-async function autoTestRun(): Promise<void> {
-  const img = await loadImage(testImage);
-  analyzePuyoSkin([img]);
-}
-
 input.addEventListener('change', updateImageDisplay);
-autoTestRun();

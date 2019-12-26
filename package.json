@@ -31,6 +31,6 @@
     "write-file-webpack-plugin": "^4.5.1"
   },
   "dependencies": {
-    "@mjyc/opencv.js": "^1.0.0"
+    "s2-puyosim-core": "^0.3.0"
   }
 }

@@ -18,11 +18,6 @@
     esutils "^2.0.2"
     js-tokens "^4.0.0"
 
-"@mjyc/opencv.js@^1.0.0":
-  version "1.0.0"
-  resolved "https://registry.yarnpkg.com/@mjyc/opencv.js/-/opencv.js-1.0.0.tgz#076c30efc6f8a00015cec399a4b9bfe653e12466"
-  integrity sha512-cvha6+WgnzaPiBVtnrzmTAdhGAkttMOnVDFnMzOH5vwbVlJblpKFgK/aqTUqVEDh6ff6Hs6uJFSm75zaGPRPmg==
-
 "@types/anymatch@*":
   version "1.3.1"
   resolved "https://registry.yarnpkg.com/@types/anymatch/-/anymatch-1.3.1.tgz#336badc1beecb9dacc38bea2cf32adf627a8421a"
@@ -4007,6 +4002,11 @@ rxjs@^6.4.0:
   integrity sha512-wuYsAYYFdWTAnAaPoKGNhfpWwKZbJW+HgAJ+mImp+Epl7BG8oNWBCTyRM8gba9k4lk8BgWdoYm21Mo/RYhhbgA==
   dependencies:
     tslib "^1.9.0"
+
+s2-puyosim-core@^0.3.0:
+  version "0.3.0"
+  resolved "https://registry.yarnpkg.com/s2-puyosim-core/-/s2-puyosim-core-0.3.0.tgz#7c7e2d107aa527392009ee6b8a913d5eea3c68de"
+  integrity sha512-v4llUW/zhZDe7lcHgf6O80bj83MsVFlKEwtFXS/yH12laXSAdzC1w0omOvKCkiBv7GKJwXBOR0xroXM0teEW4g==
 
 safe-buffer@5.1.2, safe-buffer@~5.1.0, safe-buffer@~5.1.1:
   version "5.1.2"

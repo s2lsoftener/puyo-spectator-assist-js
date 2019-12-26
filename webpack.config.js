@@ -18,14 +18,16 @@ module.exports = {
     background: './src/ts/background.ts',
     options: './src/ts/options.ts',
     popup: './src/ts/popup.ts',
+    contentScript: './src/ts/contentScript.ts',
   },
   output: {
     filename: '[name].js',
     path: path.resolve(__dirname, 'build'),
   },
-  externals: {
-    '@mjyc/opencv.js': 'cv',
-  },
+  // externals: {
+  //   '@mjyc/opencv.js': 'cv',
+  // },
+  externals: [/(opencv\.js)$/i],
   module: {
     rules: [
       {
@@ -64,7 +66,8 @@ module.exports = {
         to: './',
       },
       {
-        from: './node_modules/@mjyc/opencv.js/opencv.js',
+        // from: './node_modules/@mjyc/opencv.js/opencv.js',
+        from: './src/js/opencv.js',
         to: './',
         test: /opencv.js/,
       },

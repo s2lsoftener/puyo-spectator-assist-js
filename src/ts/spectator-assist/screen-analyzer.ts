@@ -1,4 +1,15 @@
-import cv from '@mjyc/opencv.js';
+import cv from '../../js/opencv.js';
+import defaultProfiles from './puyo-profiles.json';
+import { PuyoData, PuyoHists } from './skin-analyzer';
+import ChainsimCore, { MatrixFunctions } from 's2-puyosim-core';
+
+interface SkinData {
+  [key: string]: PuyoData;
+}
+
+interface SkinProfiles {
+  [key: string]: PuyoHists;
+}
 
 interface ScreenFeature {
   mask: cv.Rect;
@@ -12,27 +23,70 @@ interface PlayerFeatures {
   scoreDigits?: ScreenFeature[];
 }
 
+function indexOfMax(arr: number[]): number {
+  if (arr.length === 0) {
+    return -1;
+  }
+
+  let max = arr[0];
+  let maxIndex = 0;
+
+  for (let i = 1; i < arr.length; i++) {
+    if (arr[i] > max) {
+      maxIndex = i;
+      max = arr[i];
+    }
+  }
+
+  return maxIndex;
+}
+
+function indexOfMin(arr: number[]): number {
+  if (arr.length === 0) {
+    return -1;
+  }
+
+  let min = arr[0];
+  let maxIndex = 0;
+
+  for (let i = 1; i < arr.length; i++) {
+    if (arr[i] < min) {
+      maxIndex = i;
+      min = arr[i];
+    }
+  }
+
+  return maxIndex;
+}
+
 export default class ScreenAnalyzer {
   private canvas: HTMLCanvasElement;
   private screen: ScreenFeature;
   private player1: PlayerFeatures;
   private player2: PlayerFeatures;
   private frame: cv.Mat;
-  private cellMask: cv.Mat; // Gets set during getFieldCells
 
-  // Pre-allocate some histograms
-  private hist1 = new cv.Mat();
-  private hist2 = new cv.Mat();
-  private hist3 = new cv.Mat();
-  private hist4 = new cv.Mat();
+  private DEFAULT_PROFILES: SkinProfiles;
+  private currentProfile = 'puyo_aqua';
 
-  private SCALAR_RED = new cv.Scalar(255, 0, 0, 0);
-  private SCALAR_GREEN = new cv.Scalar(0, 255, 0, 0);
-  private SCALAR_BLUE = new cv.Scalar(0, 0, 255, 0);
-  private EMPTY_MASK = new cv.Mat();
+  private predictionThreshold = 0.15;
 
   constructor(targetCanvas: HTMLCanvasElement) {
+    this.frame = new cv.Mat();
     this.canvas = targetCanvas;
+
+    const profileData = defaultProfiles as SkinData;
+
+    // Convert profile data to cv.Mats
+    const profileNames = Object.keys(profileData);
+    this.DEFAULT_PROFILES = {};
+    const colors = ['red', 'green', 'blue', 'yellow', 'purple', 'garbage'];
+    profileNames.forEach(name => {
+      this.DEFAULT_PROFILES[name] = { red: null, green: null, blue: null, yellow: null, purple: null, garbage: null };
+      colors.forEach(color => {
+        this.DEFAULT_PROFILES[name][color] = cv.matFromArray(1800, 1, cv.CV_32FC1, profileData[name][color]);
+      });
+    });
   }
 
   /**
@@ -40,7 +94,10 @@ export default class ScreenAnalyzer {
    * @param frame
    */
   public setVideoFrame(frame: cv.Mat): ScreenAnalyzer {
+    this.frame = null;
     this.frame = frame;
+    cv.cvtColor(this.frame, this.frame, cv.COLOR_RGBA2RGB);
+    cv.cvtColor(this.frame, this.frame, cv.COLOR_RGB2HSV);
     return this;
   }
 
@@ -125,8 +182,6 @@ export default class ScreenAnalyzer {
     for (let x = 0; x < 6; x++) {
       for (let y = 0; y < 12; y++) {
         cells[x][y].mat = fieldMat.roi(cells[x][y].mask);
-        // // apply ellipse mask
-        // cv.bitwise_and(cells[x][y].mat, mask, cells[x][y].mat);
       }
     }
 
@@ -210,73 +265,149 @@ export default class ScreenAnalyzer {
     return this;
   }
 
-  public analyzeFieldCell(p: 1 | 2, col: number, row: number): ScreenAnalyzer {
-    const player = p === 1 ? this.player1 : this.player2;
-    const cellMat = player.cells[col][row].mat;
-
-    console.log(cellMat);
-
-    // Test. Compare to every other cell.
-    const orig = this.calcHist(cellMat);
-    for (let c = 0; c < 6; c++) {
-      for (let r = 0; r < 12; r++) {
-        const compare = this.calcHist(player.cells[c][r].mat);
-        const norm = ScreenAnalyzer.normSP(orig, compare);
-        console.log(`c${col}r${row} vs c${c}r${r}: `, norm);
-      }
-    }
-
-    return this;
-  }
-
-  private calcHist(mat: cv.Mat): cv.Mat {
+  private calcHist(mat: cv.Mat, mask: cv.Mat): cv.Mat {
     const srcVec = new cv.MatVector();
     srcVec.push_back(mat);
 
-    const accumulate = false;
-    const histSize = [256];
-    const CHANNEL_RED = [0];
-    const CHANNEL_GREEN = [1];
-    const CHANNEL_BLUE = [2];
-    const ranges = [0, 255];
+    const hist = new cv.Mat();
+    cv.calcHist(srcVec, [0, 1, 2], mask, hist, [18, 10, 10], [0, 180, 0, 256, 0, 256], false);
+
+    const fixedHist = cv.matFromArray(hist.data32F.length, 1, hist.type(), hist.data32F);
+
+    // Clean up
+    srcVec.delete();
+    hist.delete();
+    return fixedHist;
+  }
+
+  public analyzeFieldCells(p: 1 | 2): ScreenAnalyzer {
+    const player = p === 1 ? this.player1 : this.player2;
+    const cells = player.cells;
 
     // Create an ellipse mask
-    const cells = this.player1.cells[0][0];
-    const mask = new cv.Mat(cells.mask.height, cells.mask.width, cv.CV_8UC1, new cv.Scalar(0, 0, 0, 0));
-    const rect = new cv.RotatedRect(
-      new cv.Point(cells.mask.height / 2, cells.mask.width / 2),
-      new cv.Size(cells.mask.width, cells.mask.height),
+    const puyoWidth = cells[0][0].mask.width;
+    const puyoHeight = cells[0][0].mask.height;
+    const mask = new cv.Mat(puyoHeight, puyoWidth, cv.CV_8UC1, new cv.Scalar(0, 0, 0, 0));
+    const rotatedRect = new cv.RotatedRect(
+      new cv.Point(puyoWidth / 2, puyoHeight / 2),
+      new cv.Size(puyoWidth, puyoHeight * 0.8),
       0,
     );
-    cv.ellipse1(mask, rect, new cv.Scalar(255, 0, 0, 0), -1, cv.LINE_8);
+    cv.ellipse1(mask, rotatedRect, new cv.Scalar(255, 255, 255, 0), -1, cv.LINE_8);
 
-    // Calculate Histograms
-    cv.calcHist(srcVec, CHANNEL_RED, mask, this.hist1, histSize, ranges, accumulate);
-    cv.calcHist(srcVec, CHANNEL_GREEN, mask, this.hist2, histSize, ranges, accumulate);
-    cv.calcHist(srcVec, CHANNEL_BLUE, mask, this.hist3, histSize, ranges, accumulate);
+    // Set colors
+    const colors = ['red', 'green', 'blue', 'yellow', 'purple', 'garbage'];
+    const colorCodes = ['R', 'G', 'B', 'Y', 'P', 'J'];
+    const puyoMatrix = MatrixFunctions.createUniformArray('0', 6, 13);
+    console.log(puyoMatrix);
 
-    // Combine to one histogram
-    const histData = [...this.hist1.data32F, ...this.hist2.data32F, ...this.hist3.data32F];
-    const combinedHist = cv.matFromArray(256 * 3, 1, cv.CV_32FC1, histData);
-    // console.log('Combined histogram: ', combinedHist);
+    const allSimilarities: number[] = [];
 
-    // Test out normSP on the histogram
-    return combinedHist;
+    for (let x = 0; x < cells.length; x++) {
+      for (let y = 0; y < cells[x].length; y++) {
+        const cell = cells[x][y].mat;
+        const hist = this.calcHist(cell, mask);
+
+        const similarities: number[] = [];
+        let prediction = '';
+        let score = 0;
+        colors.forEach(color => {
+          const colorHist = this.DEFAULT_PROFILES[this.currentProfile][color];
+          const similarity = 1 - cv.compareHist(hist, colorHist, cv.HISTCMP_HELLINGER);
+          similarities.push(similarity);
+          allSimilarities.push(similarity);
+
+          // const div = document.createElement('div');
+          // div.style.display = 'flex';
+          // div.style.flexDirection = 'row';
+          // const canvas = document.createElement('canvas');
+          // div.appendChild(canvas);
+          // const para = document.createElement('p');
+          // para.textContent = `Cell: ${x},${y}; TestColor: ${color}, Score: ${similarity}`;
+          // div.appendChild(para);
+          // document.body.appendChild(div);
+          // cv.cvtColor(cell, cell, cv.COLOR_HSV2RGB);
+          // cv.imshow(canvas, cell);
+        });
+        hist.delete();
+
+        // If all the similarities are below the threshold, then it's not a Puyo
+        const belowThreshold = similarities.every(similarity => similarity <= this.predictionThreshold);
+        const index = indexOfMax(similarities);
+        if (belowThreshold) {
+          prediction = 'None';
+          const sum = similarities.reduce((a, b) => a + b, 0);
+          const avg = sum / similarities.length || 0;
+          score = avg;
+          puyoMatrix[x][y + 1] = '0';
+        } else {
+          prediction = colors[index];
+          score = similarities[index];
+          puyoMatrix[x][y + 1] = colorCodes[index];
+        }
+
+        const div = document.createElement('div');
+        div.style.display = 'flex';
+        div.style.flexDirection = 'row';
+        const canvas = document.createElement('canvas');
+        div.appendChild(canvas);
+        const para = document.createElement('p');
+        para.textContent = `Cell: ${x},${y}; Prediction: ${prediction}; Score: ${score}`;
+        div.appendChild(para);
+        document.body.appendChild(div);
+        const cellRGB = new cv.Mat();
+        cv.cvtColor(cell, cellRGB, cv.COLOR_HSV2RGB);
+        cv.imshow(canvas, cellRGB);
+        cellRGB.delete();
+      }
+    }
+
+    // Clean up
+    mask.delete();
+
+    console.log('Min value', allSimilarities[indexOfMin(allSimilarities)]);
+    console.log('Max value', allSimilarities[indexOfMax(allSimilarities)]);
+    console.log(puyoMatrix);
+
+    console.log(this);
+    return this;
   }
 
-  /** Calculate normalized scalar product */
-  static normSP(mat1: cv.Mat, mat2: cv.Mat): number {
-    // Compute the dot product of the two 1d vectors
-    const dst = new cv.Mat();
-    cv.multiply(mat1, mat2, dst);
+  /** Delete old mats from Emscripten heap to prepare for next frame */
+  public cleanUpFrameData(): ScreenAnalyzer {
+    // Old frame
+    this.frame.delete();
 
-    cv.reduce(dst, dst, 0, cv.REDUCE_SUM);
+    // Screen
+    this.screen.mat.delete();
 
-    // Divide the dot product by the L2 norms.
-    const mat1Norm = cv.norm(mat1, cv.NORM_L2);
-    const mat2Norm = cv.norm(mat2, cv.NORM_L2);
+    // Player board data
+    this.player1.cells.forEach(col => {
+      col.forEach(feature => {
+        feature.mat.delete();
+      });
+    });
+    this.player1.field.mat.delete();
+    this.player1.scoreArea.mat.delete();
+    this.player1.scoreDigits.forEach(feature => feature.mat.delete());
 
-    const result = dst.data32F[0] / (mat1Norm * mat2Norm);
-    return result;
+    console.log(this);
+    return this;
   }
+
+  // /** Calculate normalized scalar product */
+  // static normSP(mat1: cv.Mat, mat2: cv.Mat): number {
+  //   // Compute the dot product of the two 1d vectors
+  //   const dst = new cv.Mat();
+  //   cv.multiply(mat1, mat2, dst);
+
+  //   cv.reduce(dst, dst, 0, cv.REDUCE_SUM);
+
+  //   // Divide the dot product by the L2 norms.
+  //   const mat1Norm = cv.norm(mat1, cv.NORM_L2);
+  //   const mat2Norm = cv.norm(mat2, cv.NORM_L2);
+
+  //   const result = dst.data32F[0] / (mat1Norm * mat2Norm);
+  //   return result;
+  // }
 }

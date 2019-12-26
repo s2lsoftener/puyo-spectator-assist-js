@@ -1,4 +1,4 @@
-import cv from '@mjyc/opencv.js';
+import cv from '../../js/opencv.js';
 
 interface PuyoROIs {
   [key: string]: cv.Mat[];
@@ -10,7 +10,7 @@ interface PuyoROIs {
   garbage: cv.Mat[];
 }
 
-interface PuyoHists {
+export interface PuyoHists {
   [key: string]: cv.Mat;
   red: cv.Mat;
   green: cv.Mat;
@@ -30,14 +30,25 @@ interface PuyoAllHists {
   garbage: cv.Mat[];
 }
 
+export interface PuyoData {
+  [key: string]: number[];
+  red: number[];
+  green: number[];
+  blue: number[];
+  yellow: number[];
+  purple: number[];
+  garbage: number[];
+}
+
 export default class SkinAnalyzer {
   private puyoSkin: cv.Mat;
   private rois: PuyoROIs;
   private puyoHists: PuyoHists;
   private puyoAllHists: PuyoAllHists;
+  private colorDataJSON: PuyoData;
 
   constructor() {
-    this.puyoSkin = new cv.Mat();
+    this.puyoSkin = null;
     this.rois = { red: [], green: [], blue: [], yellow: [], purple: [], garbage: [] };
     this.puyoHists = { red: null, green: null, blue: null, yellow: null, purple: null, garbage: null };
     this.puyoAllHists = { red: [], green: [], blue: [], yellow: [], purple: [], garbage: [] };
@@ -48,6 +59,8 @@ export default class SkinAnalyzer {
 
     // Reduce to 3 channels RGB
     cv.cvtColor(this.puyoSkin, this.puyoSkin, cv.COLOR_RGBA2RGB);
+
+    cv.cvtColor(this.puyoSkin, this.puyoSkin, cv.COLOR_RGB2HSV);
 
     return this;
   }
@@ -104,11 +117,8 @@ export default class SkinAnalyzer {
     srcVec.push_back(mat);
 
     const accumulate = false;
-    const histSize = [256];
-    const CHANNEL_RED = [0];
-    const CHANNEL_GREEN = [1];
-    const CHANNEL_BLUE = [2];
-    const ranges = [0, 255];
+    const histSize = [18, 10, 10];
+    const ranges = [0, 180, 0, 256, 0, 256];
 
     // Create an ellipse mask
     const puyoWidth = 64;
@@ -121,21 +131,18 @@ export default class SkinAnalyzer {
     );
     cv.ellipse1(mask, rotatedRect, new cv.Scalar(255, 255, 255, 0), -1, cv.LINE_8);
 
-    const hist1 = new cv.Mat();
-    const hist2 = new cv.Mat();
-    const hist3 = new cv.Mat();
+    const hist = new cv.Mat();
 
-    // Calculate Histograms
-    cv.calcHist(srcVec, CHANNEL_RED, mask, hist1, histSize, ranges, accumulate);
-    cv.calcHist(srcVec, CHANNEL_GREEN, mask, hist2, histSize, ranges, accumulate);
-    cv.calcHist(srcVec, CHANNEL_BLUE, mask, hist3, histSize, ranges, accumulate);
+    cv.calcHist(srcVec, [0, 1, 2], mask, hist, histSize, ranges, accumulate);
 
-    // Combine to one histogram
-    const histData = [...hist1.data32F, ...hist2.data32F, ...hist3.data32F];
-    const combinedHist = cv.matFromArray(256 * 3, 1, cv.CV_32FC1, histData);
+    const fixedHist = cv.matFromArray(hist.data32F.length, 1, cv.CV_32FC1, hist.data32F);
 
-    // Test out normSP on the histogram
-    return combinedHist;
+    // Cleanup. Delete hists
+    hist.delete();
+    srcVec.delete();
+    mask.delete();
+
+    return fixedHist;
   }
 
   public calcAllHists(): SkinAnalyzer {
@@ -151,7 +158,7 @@ export default class SkinAnalyzer {
 
       // Compute average histogram
       const means: number[] = [];
-      means.length = histograms[0].rows * histograms[0].cols;
+      means.length = histograms[0].data32F.length;
       for (let i = 0; i < means.length; i++) {
         means[i] = 0;
       }
@@ -167,14 +174,25 @@ export default class SkinAnalyzer {
         means[i] = means[i] / histograms.length;
       }
 
-      const avgHist = cv.matFromArray(histograms[0].rows, histograms[0].cols, histograms[0].type(), means);
-
+      const avgHist = cv.matFromArray(histograms[0].data32F.length, 1, histograms[0].type(), means);
       this.puyoHists[color] = avgHist;
     });
-
-    console.log(this.puyoHists);
-    console.log(this.puyoAllHists);
     return this;
+  }
+
+  public outputHistJSON(): PuyoData {
+    const colorData: PuyoData = {
+      red: [...this.puyoHists.red.data32F],
+      green: [...this.puyoHists.green.data32F],
+      blue: [...this.puyoHists.blue.data32F],
+      yellow: [...this.puyoHists.yellow.data32F],
+      purple: [...this.puyoHists.purple.data32F],
+      garbage: [...this.puyoHists.garbage.data32F],
+    };
+
+    this.colorDataJSON = colorData;
+
+    return this.colorDataJSON;
   }
 
   public verifyHistograms(): SkinAnalyzer {
@@ -182,17 +200,43 @@ export default class SkinAnalyzer {
 
     colors.forEach((color): void => {
       const base = this.puyoHists[color];
+      console.log(base);
 
       for (let c = 0; c < colors.length; c++) {
         this.puyoAllHists[colors[c]].forEach((puyoHist, i): void => {
-          const result = cv.compareHist(base, puyoHist, cv.HISTCMP_CORREL);
+          const correl = cv.compareHist(base, puyoHist, cv.HISTCMP_CORREL);
+          const chisqr = 1 - cv.compareHist(base, puyoHist, cv.HISTCMP_CHISQR) / 100000;
+          const inters = cv.compareHist(base, puyoHist, cv.HISTCMP_INTERSECT) / 7000;
+          const hellin = 1 - cv.compareHist(base, puyoHist, cv.HISTCMP_HELLINGER);
+          const chisqr2 = 1 - cv.compareHist(base, puyoHist, cv.HISTCMP_CHISQR_ALT) / 15000;
+          const kldiv = 1 - cv.compareHist(base, puyoHist, cv.HISTCMP_KL_DIV) / 90000;
 
-          console.log(`Base: ${color}, Compare color: ${colors[c]}, Compare Index: ${i}, Result: ${result}`);
+          console.log(`Base: ${color}, Compare color: ${colors[c]}, Compare Index: ${i}\n
+                       corr: ${correl}, chisqr: ${chisqr}, inters: ${inters},\n
+                       hell: ${hellin}, chisqr_alt: ${chisqr2}, kldiv: ${kldiv}`);
         });
       }
     });
 
+    console.log(this);
     return this;
+  }
+
+  public delete(): void {
+    // Delete the skin analyzer and any associated mats
+    Object.keys(this.puyoAllHists).forEach(key => {
+      this.puyoAllHists[key].forEach(mat => mat.delete());
+    });
+
+    Object.keys(this.puyoHists).forEach(key => {
+      this.puyoHists[key].delete();
+    });
+
+    Object.keys(this.rois).forEach(key => {
+      this.rois[key].forEach(mat => mat.delete());
+    });
+
+    this.puyoSkin.delete();
   }
 
   public showImage(canvasId: string): SkinAnalyzer {

@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
-declare module '@mjyc/opencv.js' {
+declare module '*/opencv.js' {
   namespace cv {
     const FILLED = -1;
     const LINE_4 = 4;
@@ -26,6 +26,12 @@ declare module '@mjyc/opencv.js' {
 
     // Histogram comparison methods
     const HISTCMP_CORREL = 0;
+    const HISTCMP_CHISQR = 1;
+    const HISTCMP_INTERSECT = 2;
+    const HISTCMP_HELLINGER = 3;
+    const HISTCMP_BHATTACHARYYA = 3;
+    const HISTCMP_CHISQR_ALT = 4;
+    const HISTCMP_KL_DIV = 5;
 
     class Rect {
       /**
@@ -64,6 +70,8 @@ declare module '@mjyc/opencv.js' {
       roi(rect: Rect): Mat;
       size(): { width: number; height: number };
       type(): number;
+      channels(): number;
+      delete(): void;
     }
 
     class Point {
@@ -95,6 +103,7 @@ declare module '@mjyc/opencv.js' {
     class MatVector {
       // eslint-disable-next-line @typescript-eslint/camelcase
       push_back(mat: Mat): void;
+      delete(): void;
     }
 
     // eslint-disable-next-line @typescript-eslint/camelcase
