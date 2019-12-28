@@ -1,14 +1,18 @@
-// import opencvTest from './opencv-test';
-
-// opencvTest();
 import cv from '../js/opencv.js';
 import ScreenAnalyzer from './spectator-assist/screen-analyzer';
 import testImage from '../img/ringo_seriri_2.png';
 import { loadImage } from './spectator-assist/helper';
 
-(async function(): Promise<void> {
+cv['onRuntimeInitialized'] = async (): Promise<void> => {
+  console.log('Opencv ready');
   const img = await loadImage(testImage);
+  console.log('img', img);
+  console.log('cv', cv);
+  Object.assign(window, { img: img, cv: cv });
+  const testMat = new cv.Mat();
+  console.log('made a test mat');
   const mat = cv.imread(img);
+  console.log('test');
   const canvas = document.getElementById('canvas-output') as HTMLCanvasElement;
   const screenAnalyzer = new ScreenAnalyzer(canvas);
 
@@ -25,4 +29,4 @@ import { loadImage } from './spectator-assist/helper';
     .drawROIs(1);
 
   Object.assign(window, { screenAnalyzer });
-})();
+};

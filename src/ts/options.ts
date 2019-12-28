@@ -1,7 +1,6 @@
 import SkinAnalyzer from './spectator-assist/skin-analyzer';
 import { PuyoData } from './spectator-assist/skin-analyzer';
 import { loadImage } from './spectator-assist/helper';
-import ScreenAnalyzer from './spectator-assist/screen-analyzer';
 
 interface AllColorData {
   [key: string]: PuyoData;

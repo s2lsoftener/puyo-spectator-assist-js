@@ -1,6 +1,8 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 declare module '*/opencv.js' {
   namespace cv {
+    function onRuntimeInitialized(): void;
+
     const FILLED = -1;
     const LINE_4 = 4;
     const LINE_8 = 8;
@@ -32,6 +34,13 @@ declare module '*/opencv.js' {
     const HISTCMP_BHATTACHARYYA = 3;
     const HISTCMP_CHISQR_ALT = 4;
     const HISTCMP_KL_DIV = 5;
+
+    // kmeans
+    // eslint-disable-next-line @typescript-eslint/camelcase
+    const TermCriteria_EPS = 2;
+    // eslint-disable-next-line @typescript-eslint/camelcase
+    const TermCriteria_MAX_ITER = 1;
+    const KMEANS_RANDOM_CENTERS = 0;
 
     class Rect {
       /**
@@ -125,6 +134,7 @@ declare module '*/opencv.js' {
 
     function ellipse1(dst: Mat, rotatedRect: RotatedRect, color: Scalar, thickness: number, lineType: 4 | 8 | 16): void;
 
+    function kmeans(one: any, two: any, three: any, four: any, five: any, six: any): unknown;
     function matFromArray(rows: number, cols: number, matrixType: number, data: number[] | Float32Array): Mat;
 
     function minMaxLoc(
