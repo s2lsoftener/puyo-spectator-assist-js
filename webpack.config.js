@@ -5,29 +5,28 @@ const CleanWebpackPlugin = require('clean-webpack-plugin').CleanWebpackPlugin;
 const CopyWebpackPlugin = require('copy-webpack-plugin');
 // const WriteFilePlugin = require('write-file-webpack-plugin');
 
+console.log('mode', process.env.NODE_ENV);
+
 module.exports = {
   mode: process.env.NODE_ENV || 'development',
-  devtool: process.env.NODE_ENV === 'development' && 'inline-source-map',
+  devtool: process.env.NODE_ENV === 'development' && 'source-map',
   devServer: {
     contentBase: path.join(__dirname, 'build'),
     watchContentBase: true,
     disableHostCheck: true,
     writeToDisk: true,
+    open: true,
   },
   entry: {
     background: './src/ts/background.ts',
     options: './src/ts/options.ts',
-    popup: './src/ts/popup.ts',
+    popup: './src/ts/popup.tsx',
     contentScript: './src/ts/contentScript.ts',
   },
   output: {
     filename: '[name].js',
     path: path.resolve(__dirname, 'build'),
   },
-  // externals: {
-  //   '@mjyc/opencv.js': 'cv',
-  // },
-  // externals: [/(opencv\.js)$/i],
   externals: {
     '../js/opencv.js': 'cv',
     '../../js/opencv.js': 'cv',
@@ -37,7 +36,13 @@ module.exports = {
       {
         test: /\.tsx?$/,
         use: 'ts-loader',
-        exclude: /node_modules/,
+        exclude: [/node_modules/],
+      },
+      {
+        enforce: 'pre',
+        test: /\.js$/,
+        exclude: /opencv\.js/,
+        loader: 'source-map-loader',
       },
       {
         test: /\.css$/,
@@ -48,9 +53,6 @@ module.exports = {
         use: [
           {
             loader: 'file-loader',
-            // options: {
-            //   outputPath: 'images',
-            // },
           },
         ],
       },

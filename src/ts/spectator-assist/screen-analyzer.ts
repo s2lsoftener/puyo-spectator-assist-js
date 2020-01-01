@@ -299,7 +299,6 @@ export default class ScreenAnalyzer {
     const colors = ['red', 'green', 'blue', 'yellow', 'purple', 'garbage'];
     const colorCodes = ['R', 'G', 'B', 'Y', 'P', 'J'];
     const puyoMatrix = MatrixFunctions.createUniformArray('0', 6, 13);
-    console.log(puyoMatrix);
 
     const allSimilarities: number[] = [];
 
@@ -365,11 +364,11 @@ export default class ScreenAnalyzer {
     // Clean up
     mask.delete();
 
-    console.log('Min value', allSimilarities[indexOfMin(allSimilarities)]);
-    console.log('Max value', allSimilarities[indexOfMax(allSimilarities)]);
+    // console.log('Min value', allSimilarities[indexOfMin(allSimilarities)]);
+    // console.log('Max value', allSimilarities[indexOfMax(allSimilarities)]);
     console.log(puyoMatrix);
 
-    console.log(this);
+    // console.log(this);
     return this;
   }
 
@@ -391,7 +390,7 @@ export default class ScreenAnalyzer {
     this.player1.scoreArea.mat.delete();
     this.player1.scoreDigits.forEach(feature => feature.mat.delete());
 
-    console.log(this);
+    // console.log(this);
     return this;
   }
 

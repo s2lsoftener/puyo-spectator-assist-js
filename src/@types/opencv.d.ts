@@ -115,6 +115,11 @@ declare module '*/opencv.js' {
       delete(): void;
     }
 
+    class VideoCapture {
+      constructor(video: HTMLVideoElement);
+      read(targetMat: Mat): void;
+    }
+
     // eslint-disable-next-line @typescript-eslint/camelcase
     function bitwise_and(src1: Mat, src2: Mat, dst: Mat): void;
 
